@@ -8,10 +8,11 @@ namespace MovieAPI.Models
         [Required]
         public string Title { get; set; } = string.Empty;
         [Range(1800, 2026)]
-        public DateTime Year { get; set; }
+        public int Year { get; set; }
         [Range(0, int.MaxValue)]
         public int Duration { get; set; }
-        public MovieDetails Details { get; set; } = new MovieDetails();
+        public int DetailsId { get; set; }
+        public MovieDetails? Details { get; set; }
         public List<Actor> Actors { get; set; } = new List<Actor>();
         public List<Review> Reviews { get; set; } = new List<Review>();
     }

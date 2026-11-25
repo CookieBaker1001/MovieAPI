@@ -13,5 +13,8 @@ namespace MovieAPI.Models
         public string Language { get; set; } = string.Empty;
         [Range(0, int.MaxValue)]
         public int Budget { get; set; }
+        [Required]
+        public int MovieId { get; set; }
+        public Movie Movie { get; set; } = new Movie();
     }
 }

@@ -11,5 +11,8 @@ namespace MovieAPI.Models
         public string Comment { get; set; } = string.Empty;
         [Range(1, 5)]
         public int Rating { get; set; }
+        [Required]
+        public int MovieId { get; set; }
+        public Movie? Movie { get; set; }
     }
 }

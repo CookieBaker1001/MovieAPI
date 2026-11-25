@@ -49,6 +49,48 @@ public class MoviesController : ControllerBase
         return movieToReturn;
     }
 
+    [HttpGet("{id}/details")]
+    public async Task<ActionResult<MovieDetailDto>> GetMovieDetails(int id) 
+    {
+        var movie = await _context.Movie
+            .Where(m => m.Id == id)
+            .Include(m => m.Details)
+            .Include(m => m.Actors)
+            .Include(m => m.Reviews)
+            .FirstAsync();
+
+        if (movie is null)
+            return NotFound();
+
+        MovieDetails md = movie.Details ?? new MovieDetails();
+        List<Actor> actors = movie.Actors ?? new List<Actor>();
+        List<Review> reviews = movie.Reviews ?? new List<Review>();
+
+        MovieDetailDto movieDetailToReturn = new MovieDetailDto()
+        {
+            Title = movie.Title,
+            Year = movie.Year,
+            Duration = movie.Duration,
+            Genre = md.Genre,
+            Synopsis = md.Synopsis,
+            Language = md.Language,
+            Budget = md.Budget,
+            Reviews = reviews.Select(r => new ReviewDto()
+            {
+                ReviewerName = r.ReviewerName,
+                Comment = r.Comment,
+                Rating = r.Rating
+            }).ToList(),
+            Actors = actors.Select(a => new ActorDto()
+            {
+                Name = a.Name,
+                BirthYear = a.BirthYear
+            }).ToList()
+        };
+
+        return movieDetailToReturn;
+    }
+
     // PUT: api/Movie/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
@@ -114,6 +156,49 @@ public class MoviesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction("GetMovie", new { id = movieToCreate.Id }, incommingMovie);
+    }
+
+    [HttpPost("{id}")]
+    public async Task<ActionResult<DetailsCreateDto>> PostMovieDetails(int id, DetailsCreateDto details) { 
+        var movie = await _context.Movie.FindAsync(id);
+
+        if (movie is null)
+            return NotFound();
+
+        MovieDetails md = new MovieDetails()
+        {
+            Genre = details.Genre,
+            Synopsis = details.Synopsis,
+            Language = details.Language,
+            Budget = details.Budget,
+            MovieId = id
+        };
+
+        movie.Details = md;
+        _context.Movie.Update(movie);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction("GetMovieDetails", new { id = md.Id }, details);
+    }
+
+    [HttpGet("{id}/addactor")]
+    public async Task<ActionResult> AddActorToMovie(int id, int actorId) {
+        var movie = await _context.Movie
+            .Where(m => m.Id == id)
+            .Include(m => m.Actors)
+            .FirstOrDefaultAsync();
+
+        if (movie is null)
+            return NotFound();
+
+        var actor = await _context.Actors.FindAsync(actorId);
+
+        if (actor is null)
+            return NotFound();
+
+        movie.Actors.Add(actor);
+        await _context.SaveChangesAsync();
+
+        return Ok($"Actor {actor.Name} added to the cast of {movie.Title}");
     }
 
     // DELETE: api/Movie/5

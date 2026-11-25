@@ -3,7 +3,7 @@ using MovieAPI.Models;
 
 public class MovieAPIContext(DbContextOptions<MovieAPIContext> options) : DbContext(options)
 {
-    public DbSet<Movie> Movie { get; set; } = default!;
+    public DbSet<Movie> Movies { get; set; } = default!;
     public DbSet<MovieDetails> MovieDetails { get; set; } = default!;
     public DbSet<Actor> Actors { get; set; } = default!;
     public DbSet<Review> Reviews { get; set; } = default!;

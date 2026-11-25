@@ -105,7 +105,7 @@ public class ReviewsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ReviewCreateDto>> PostReview(ReviewCreateDto incomingReview)
     {
-        var movie = await _context.Movie.FindAsync(incomingReview.MovieId);
+        var movie = await _context.Movies.FindAsync(incomingReview.MovieId);
 
         if (movie is null)
         {

@@ -17,7 +17,7 @@ public class MoviesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MovieDto>>> GetMovie()
     {
-        var movies = await _context.Movie.Select(m => new MovieDto
+        var movies = await _context.Movies.Select(m => new MovieDto
         {
             Id = m.Id,
             Title = m.Title,
@@ -31,7 +31,7 @@ public class MoviesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<MovieDto>> GetMovie(int id)
     {
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movies.FindAsync(id);
 
         if (movie == null)
         {
@@ -52,7 +52,7 @@ public class MoviesController : ControllerBase
     [HttpGet("{id}/details")]
     public async Task<ActionResult<MovieDetailDto>> GetMovieDetails(int id) 
     {
-        var movie = await _context.Movie
+        var movie = await _context.Movies
             .Where(m => m.Id == id)
             .Include(m => m.Details)
             .Include(m => m.Actors)
@@ -101,7 +101,7 @@ public class MoviesController : ControllerBase
             return BadRequest();
         }
 
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movies.FindAsync(id);
         if (movie == null)
         {
             return NotFound();
@@ -152,7 +152,7 @@ public class MoviesController : ControllerBase
             Year = incommingMovie.Year,
             Duration = incommingMovie.Duration,
         };
-        _context.Movie.Add(movieToCreate);
+        _context.Movies.Add(movieToCreate);
         await _context.SaveChangesAsync();
 
         return CreatedAtAction("GetMovie", new { id = movieToCreate.Id }, incommingMovie);
@@ -160,7 +160,7 @@ public class MoviesController : ControllerBase
 
     [HttpPost("{id}")]
     public async Task<ActionResult<DetailsCreateDto>> PostMovieDetails(int id, DetailsCreateDto details) { 
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movies.FindAsync(id);
 
         if (movie is null)
             return NotFound();
@@ -175,14 +175,14 @@ public class MoviesController : ControllerBase
         };
 
         movie.Details = md;
-        _context.Movie.Update(movie);
+        _context.Movies.Update(movie);
         await _context.SaveChangesAsync();
         return CreatedAtAction("GetMovieDetails", new { id = md.Id }, details);
     }
 
     [HttpGet("{id}/addactor")]
     public async Task<ActionResult> AddActorToMovie(int id, int actorId) {
-        var movie = await _context.Movie
+        var movie = await _context.Movies
             .Where(m => m.Id == id)
             .Include(m => m.Actors)
             .FirstOrDefaultAsync();
@@ -205,13 +205,13 @@ public class MoviesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteMovie(int? id)
     {
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movies.FindAsync(id);
         if (movie == null)
         {
             return NotFound();
         }
 
-        _context.Movie.Remove(movie);
+        _context.Movies.Remove(movie);
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -219,6 +219,6 @@ public class MoviesController : ControllerBase
 
     private bool MovieExists(int? id)
     {
-        return _context.Movie.Any(e => e.Id == id);
+        return _context.Movies.Any(e => e.Id == id);
     }
 }

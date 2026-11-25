@@ -7,9 +7,9 @@ namespace MovieAPI.Models
         public int Id { get; set; }
         [MinLength(1), MaxLength(100)]
         public string Genre { get; set; } = string.Empty;
-        [MaxLength(200)]
+        [MaxLength(1000)]
         public string Synopsis { get; set; } = string.Empty;
-        [MinLength(1), MaxLength(3)]
+        [MinLength(2), MaxLength(25)]
         public string Language { get; set; } = string.Empty;
         [Range(0, int.MaxValue)]
         public int Budget { get; set; }

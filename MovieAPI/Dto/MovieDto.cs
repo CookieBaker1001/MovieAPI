@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using MovieAPI.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace MovieAPI.Dto
 {
-    public class MovieDto
+    public class MovieDto : IMovieDto
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;

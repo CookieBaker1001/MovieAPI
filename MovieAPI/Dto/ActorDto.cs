@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MovieAPI.Dto
 {
-    public class ActorDto
+    public class ActorDto : IActorDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;

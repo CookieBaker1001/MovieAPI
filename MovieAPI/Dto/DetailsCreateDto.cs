@@ -8,6 +8,5 @@ namespace MovieAPI.Dto
         public string Synopsis { get; set; } = string.Empty;
         public string Language { get; set; } = string.Empty;
         public int Budget { get; set; }
-        public int MovieId { get; set; }
     }
 }

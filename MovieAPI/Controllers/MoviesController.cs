@@ -13,29 +13,71 @@ public class MoviesController : ControllerBase
         _context = context;
     }
 
-    // GET: api/Movie
+    // GET: api/movies
+    // Get all movies
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<MovieDto>>> GetMovie()
+    public async Task<ActionResult<IEnumerable<MovieDto>>> GetMovie([FromQuery] string? genre, int? year, string? actor)
     {
-        var movies = await _context.Movie.Select(m => new MovieDto
+        var moviesQuery = _context.Movie.AsQueryable();
+
+        if (genre is not null) {
+            moviesQuery = moviesQuery
+                .Where(m => (m.Details != null && m.Details.Genre == genre));
+        }
+        if (year is not null)
+        {
+            moviesQuery = moviesQuery
+                .Where(m => m.Year == year);
+        }
+        if (actor is not null)
+        {
+            moviesQuery = moviesQuery
+                .Where(m => m.Actors.Any(a => a.Name.Contains(actor)));
+        }
+
+        var movies = await moviesQuery.Select(m => new MovieDto
         {
             Id = m.Id,
             Title = m.Title,
             Year = m.Year,
             Duration = m.Duration,
         }).ToListAsync();
+
         return movies;
     }
 
-    // GET: api/Movie/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<MovieDto>> GetMovie(int id)
+    // GET: api/movies/5
+    // Get a specific movie by id
+    [HttpGet("{movieId}")]
+    public async Task<ActionResult<IMovieDto>> GetMovie(int movieId, [FromQuery] bool? withActors)
     {
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movie.FindAsync(movieId);
 
         if (movie == null)
         {
             return NotFound();
+        }
+
+        if (withActors.HasValue && withActors.Value)
+        {
+            var actors = await _context.Actors
+                .Where(a => a.Movies.Any(m => m.Id == movieId))
+                .ToListAsync();
+            List<ActorDto> actorsDto = actors.Select(a => new ActorDto {
+                Id = a.Id,
+                Name = a.Name,
+                BirthYear = a.BirthYear
+            }).ToList();
+            var movieWithActorsToReturn = new MovieWithActorsDto
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                Year = movie.Year,
+                Duration = movie.Duration,
+                Actors = actorsDto
+            };
+
+            return movieWithActorsToReturn;
         }
 
         var movieToReturn = new MovieDto
@@ -43,17 +85,19 @@ public class MoviesController : ControllerBase
             Id = movie.Id,
             Title = movie.Title,
             Year = movie.Year,
-            Duration = movie.Duration
+            Duration = movie.Duration,
         };
 
         return movieToReturn;
     }
 
-    [HttpGet("{id}/details")]
-    public async Task<ActionResult<MovieDetailDto>> GetMovieDetails(int id) 
+    // GET: api/movies/5/details
+    // Get details for a specific movie
+    [HttpGet("{movieId}/details")]
+    public async Task<ActionResult<MovieDetailDto>> GetMovieDetails(int movieId) 
     {
         var movie = await _context.Movie
-            .Where(m => m.Id == id)
+            .Where(m => m.Id == movieId)
             .Include(m => m.Details)
             .Include(m => m.Actors)
             .Include(m => m.Reviews)
@@ -91,17 +135,63 @@ public class MoviesController : ControllerBase
         return movieDetailToReturn;
     }
 
-    // PUT: api/Movie/5
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutMovie(int? id, MovieUpdateDto movieDto)
+    // POST: api/movies
+    // Post a new movie
+    [HttpPost]
+    public async Task<ActionResult<MovieCreateDto>> PostMovie(MovieCreateDto incommingMovie)
     {
-        if (id != movieDto.Id)
+        var movieToCreate = new Movie
+        {
+            Title = incommingMovie.Title,
+            Year = incommingMovie.Year,
+            Duration = incommingMovie.Duration,
+        };
+        _context.Movie.Add(movieToCreate);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction("GetMovie", new { id = movieToCreate.Id }, incommingMovie);
+    }
+
+    // POST: api/movies/5
+    // Post details to a movie
+    [HttpPost("{movieId}")]
+    public async Task<ActionResult<DetailsCreateDto>> PostMovieDetails(int movieId, DetailsCreateDto details)
+    {
+        var movie = await _context.Movie
+            .Include(m => m.Details)
+            .FirstOrDefaultAsync(m => m.Id == movieId);
+
+        if (movie is null)
+            return NotFound();
+        if (movie.Details is not null)
+            return BadRequest("Details already exist for this movie.");
+
+        MovieDetails md = new MovieDetails()
+        {
+            Genre = details.Genre,
+            Synopsis = details.Synopsis,
+            Language = details.Language,
+            Budget = details.Budget,
+            MovieId = movieId
+        };
+
+        movie.Details = md;
+        _context.Movie.Update(movie);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction("PostMovieDetails", new { id = md.Id }, details);
+    }
+
+    // PUT: api/movies/5
+    // Update a specific movie by id
+    [HttpPut("{movieId}")]
+    public async Task<IActionResult> PutMovie(int? movieId, MovieUpdateDto movieDto)
+    {
+        if (movieId != movieDto.Id)
         {
             return BadRequest();
         }
 
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movie.FindAsync(movieId);
         if (movie == null)
         {
             return NotFound();
@@ -128,7 +218,7 @@ public class MoviesController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!MovieExists(id))
+            if (!MovieExists(movieId))
             {
                 return NotFound();
             }
@@ -141,71 +231,12 @@ public class MoviesController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Movie
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPost]
-    public async Task<ActionResult<MovieCreateDto>> PostMovie(MovieCreateDto incommingMovie)
+    // DELETE: api/movies/5
+    // Delete a specific movie by id
+    [HttpDelete("{movieId}")]
+    public async Task<IActionResult> DeleteMovie(int? movieId)
     {
-        var movieToCreate = new Movie
-        {
-            Title = incommingMovie.Title,
-            Year = incommingMovie.Year,
-            Duration = incommingMovie.Duration,
-        };
-        _context.Movie.Add(movieToCreate);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction("GetMovie", new { id = movieToCreate.Id }, incommingMovie);
-    }
-
-    [HttpPost("{id}")]
-    public async Task<ActionResult<DetailsCreateDto>> PostMovieDetails(int id, DetailsCreateDto details) { 
-        var movie = await _context.Movie.FindAsync(id);
-
-        if (movie is null)
-            return NotFound();
-
-        MovieDetails md = new MovieDetails()
-        {
-            Genre = details.Genre,
-            Synopsis = details.Synopsis,
-            Language = details.Language,
-            Budget = details.Budget,
-            MovieId = id
-        };
-
-        movie.Details = md;
-        _context.Movie.Update(movie);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction("GetMovieDetails", new { id = md.Id }, details);
-    }
-
-    [HttpGet("{id}/addactor")]
-    public async Task<ActionResult> AddActorToMovie(int id, int actorId) {
-        var movie = await _context.Movie
-            .Where(m => m.Id == id)
-            .Include(m => m.Actors)
-            .FirstOrDefaultAsync();
-
-        if (movie is null)
-            return NotFound();
-
-        var actor = await _context.Actors.FindAsync(actorId);
-
-        if (actor is null)
-            return NotFound();
-
-        movie.Actors.Add(actor);
-        await _context.SaveChangesAsync();
-
-        return Ok($"Actor {actor.Name} added to the cast of {movie.Title}");
-    }
-
-    // DELETE: api/Movie/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteMovie(int? id)
-    {
-        var movie = await _context.Movie.FindAsync(id);
+        var movie = await _context.Movie.FindAsync(movieId);
         if (movie == null)
         {
             return NotFound();

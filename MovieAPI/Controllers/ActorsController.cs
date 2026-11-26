@@ -13,11 +13,23 @@ public class ActorsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/Actor
+    // GET: api/actors
+    // Get all actors
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ActorDto>>> GetActors()
+    public async Task<ActionResult<IEnumerable<ActorDto>>> GetActors([FromQuery] string? name, int? birthYear)
     {
-        var actors = await _context.Actors.Select(a => new ActorDto
+        var actorsQuery = _context.Actors.AsQueryable();
+
+        if (name is not null)
+        {
+            actorsQuery = actorsQuery.Where(a => a.Name.Contains(name));
+        }
+        if (birthYear.HasValue)
+        {
+            actorsQuery = actorsQuery.Where(a => a.BirthYear == birthYear.Value);
+        }
+
+        var actors = await actorsQuery.Select(a => new ActorDto
         {
             Id = a.Id,
             Name = a.Name,
@@ -27,15 +39,39 @@ public class ActorsController : ControllerBase
         return actors;
     }
 
-    // GET: api/Actor/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ActorDto>> GetActor(int id)
+    // GET: api/actors/5
+    // Get a specific actor by id
+    [HttpGet("{actorId}")]
+    public async Task<ActionResult<IActorDto>> GetActor(int actorId, [FromQuery] bool? withMovies)
     {
-        var actor = await _context.Actors.FindAsync(id);
+        var actor = await _context.Actors.FindAsync(actorId);
 
         if (actor == null)
         {
             return NotFound();
+        }
+
+        if (withMovies.HasValue && withMovies.Value)
+        {
+            var movies = await _context.Movie
+                .Where(m => m.Actors.Any(a => a.Id == actorId))
+                .ToListAsync();
+            List<MovieDto> moviesDto = movies.Select(m => new MovieDto
+            {
+                Id = m.Id,
+                Title = m.Title,
+                Year = m.Year,
+                Duration = m.Duration
+            }).ToList();
+            var actorWithMoviesToReturn = new ActorWithMoviesDto
+            {
+                Id = actor.Id,
+                Name = actor.Name,
+                BirthYear = actor.BirthYear,
+                Movies = moviesDto
+            };
+
+            return actorWithMoviesToReturn;
         }
 
         ActorDto actorToReturn = new ActorDto
@@ -48,17 +84,57 @@ public class ActorsController : ControllerBase
         return actorToReturn;
     }
 
-    // PUT: api/Actor/5
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutActor(int? id, ActorUpdateDto actorDto)
+    // POST: api/actors
+    // Post a new actor
+    [HttpPost]
+    public async Task<ActionResult<Actor>> PostActor(ActorCreateDto actorDto)
     {
-        if (id != actorDto.Id)
+        var actor = new Actor
+        {
+            Name = actorDto.Name,
+            BirthYear = actorDto.BirthYear
+        };
+        _context.Actors.Add(actor);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction("PostActor", new { id = actor.Id }, actorDto);
+    }
+
+    // POST: api/movies/5/actors/3
+    // Add an actor to a movie
+    [HttpPost("{movieId}/actors/{actorId}")]
+    public async Task<ActionResult> AddActorToMovie(int movieId, int actorId)
+    {
+        var movie = await _context.Movie
+            .Where(m => m.Id == movieId)
+            .Include(m => m.Actors)
+            .FirstOrDefaultAsync();
+
+        if (movie is null)
+            return NotFound();
+
+        var actor = await _context.Actors.FindAsync(actorId);
+
+        if (actor is null)
+            return NotFound();
+
+        movie.Actors.Add(actor);
+        await _context.SaveChangesAsync();
+
+        return Ok($"Actor {actor.Name} added to the cast of {movie.Title}");
+    }
+
+    // PUT: api/actors/5
+    // Update a specific actor by id
+    [HttpPut("{actorId}")]
+    public async Task<IActionResult> PutActor(int? actorId, ActorUpdateDto actorDto)
+    {
+        if (actorId != actorDto.Id)
         {
             return BadRequest();
         }
 
-        var actor = await _context.Actors.FindAsync(id);
+        var actor = await _context.Actors.FindAsync(actorId);
         if (actor is null)
         {
             return NotFound();
@@ -82,7 +158,7 @@ public class ActorsController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!ActorExists(id))
+            if (!ActorExists(actorId))
             {
                 return NotFound();
             }
@@ -95,27 +171,12 @@ public class ActorsController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Actor
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPost]
-    public async Task<ActionResult<Actor>> PostActor(ActorCreateDto actorDto)
+    // DELETE: api/actors/5
+    // Delete a specific actor by id
+    [HttpDelete("{actorId}")]
+    public async Task<IActionResult> DeleteActor(int? actorId)
     {
-        var actor = new Actor
-        {
-            Name = actorDto.Name,
-            BirthYear = actorDto.BirthYear
-        };
-        _context.Actors.Add(actor);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction("GetActor", new { id = actor.Id }, actorDto);
-    }
-
-    // DELETE: api/Actor/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteActor(int? id)
-    {
-        var actor = await _context.Actors.FindAsync(id);
+        var actor = await _context.Actors.FindAsync(actorId);
         if (actor == null)
         {
             return NotFound();

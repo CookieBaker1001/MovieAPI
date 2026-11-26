@@ -13,7 +13,8 @@ public class ReviewsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/Review
+    // GET: api/reviews
+    // Get all reviews
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()
     {
@@ -28,40 +29,73 @@ public class ReviewsController : ControllerBase
         return reviews;
     }
 
-    // GET: api/Review/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ReviewDto>> GetReview(int id)
+    // GET: api/reviews/5
+    // Get all reviews for a specific movie
+    [HttpGet("{movieId}")]
+    public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsForMovie(int movieId)
     {
-        var review = await _context.Reviews.FindAsync(id);
+        var reviews = await _context.Reviews
+            .Where(r => r.MovieId == movieId)
+            .ToListAsync();
 
-        if (review == null)
+        if (reviews is null)
         {
             return NotFound();
         }
 
-        ReviewDto reviewToReturn = new ReviewDto
+        List<ReviewDto> reviewsToReturn = new List<ReviewDto>();
+        foreach (var review in reviews)
         {
-            Id = review.Id,
-            ReviewerName = review.ReviewerName,
-            Comment = review.Comment,
-            Rating = review.Rating,
-            MovieId = review.MovieId
-        };
+            reviewsToReturn.Add(new ReviewDto
+            {
+                Id = review.Id,
+                ReviewerName = review.ReviewerName,
+                Comment = review.Comment,
+                Rating = review.Rating,
+                MovieId = review.MovieId
+            });
+        }
 
-        return reviewToReturn;
+        return reviewsToReturn;
     }
 
-    // PUT: api/Review/5
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutReview(int? id, ReviewUpdateDto reviewDto)
+    // POST: api/reviews
+    // Post a new review for a specific movie
+    [HttpPost("{movieId}")]
+    public async Task<ActionResult<ReviewCreateDto>> PostReview(int movieId, ReviewCreateDto incomingReview)
     {
-        if (id != reviewDto.Id)
+        var movie = await _context.Movie.FindAsync(movieId);
+
+        if (movie is null)
+        {
+            return NotFound($"Movie with ID {movieId} not found.");
+        }
+
+        var reviewToCreate = new Review
+        {
+            ReviewerName = incomingReview.ReviewerName,
+            Comment = incomingReview.Comment,
+            Rating = incomingReview.Rating,
+            MovieId = movieId
+        };
+
+        _context.Reviews.Add(reviewToCreate);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction("PostReview", new { id = reviewToCreate.Id }, incomingReview);
+    }
+
+    // PUT: api/reviews/5
+    // Update a specific review by id
+    [HttpPut("{reviewId}")]
+    public async Task<IActionResult> PutReview(int? reviewId, ReviewUpdateDto reviewDto)
+    {
+        if (reviewId != reviewDto.Id)
         {
             return BadRequest();
         }
 
-        var review = await _context.Reviews.FindAsync(id);
+        var review = await _context.Reviews.FindAsync(reviewId);
         if (review is null)
         {
             return NotFound();
@@ -87,7 +121,7 @@ public class ReviewsController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!ReviewExists(id))
+            if (!ReviewExists(reviewId))
             {
                 return NotFound();
             }
@@ -100,37 +134,12 @@ public class ReviewsController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Review
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPost]
-    public async Task<ActionResult<ReviewCreateDto>> PostReview(ReviewCreateDto incomingReview)
+    // DELETE: api/reviews/5
+    // Delete a specific review by id
+    [HttpDelete("{reviewId}")]
+    public async Task<IActionResult> DeleteReview(int? reviewId)
     {
-        var movie = await _context.Movie.FindAsync(incomingReview.MovieId);
-
-        if (movie is null)
-        {
-            return NotFound($"Movie with ID {incomingReview.MovieId} not found.");
-        }
-
-        var reviewToCreate = new Review
-        {
-            ReviewerName = incomingReview.ReviewerName,
-            Comment = incomingReview.Comment,
-            Rating = incomingReview.Rating,
-            MovieId = incomingReview.MovieId
-        };
-
-        _context.Reviews.Add(reviewToCreate);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction("GetReview", new { id = reviewToCreate.Id }, incomingReview);
-    }
-
-    // DELETE: api/Review/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteReview(int? id)
-    {
-        var review = await _context.Reviews.FindAsync(id);
+        var review = await _context.Reviews.FindAsync(reviewId);
         if (review == null)
         {
             return NotFound();

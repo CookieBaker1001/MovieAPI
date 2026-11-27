@@ -53,10 +53,8 @@ public class MoviesController : ControllerBase
     {
         var movie = await _context.Movie.FindAsync(movieId);
 
-        if (movie == null)
-        {
-            return NotFound();
-        }
+        if (movie is null)
+            return NotFound($"Movie with id {movieId} does not exist.");
 
         if (withActors.HasValue && withActors.Value)
         {
@@ -104,7 +102,7 @@ public class MoviesController : ControllerBase
             .FirstAsync();
 
         if (movie is null)
-            return NotFound();
+            return NotFound($"Could not provide details. Movie with id {movieId} does not exist.");
 
         MovieDetails md = movie.Details ?? new MovieDetails();
         List<Actor> actors = movie.Actors ?? new List<Actor>();
@@ -162,9 +160,9 @@ public class MoviesController : ControllerBase
             .FirstOrDefaultAsync(m => m.Id == movieId);
 
         if (movie is null)
-            return NotFound();
+            return NotFound($"Could not add details. Movie with id {movieId} does not exist.");
         if (movie.Details is not null)
-            return BadRequest("Details already exist for this movie.");
+            return BadRequest($"Details already exist for movie with id {movieId}. Consider using PUT method instead.");
 
         MovieDetails md = new MovieDetails()
         {
@@ -187,24 +185,18 @@ public class MoviesController : ControllerBase
     public async Task<IActionResult> PutMovie(int? movieId, MovieUpdateDto movieDto)
     {
         if (movieId != movieDto.Id)
-        {
-            return BadRequest();
-        }
+            return BadRequest($"The provided movie id ({movieId}) does not match the id in the request body ({movieDto.Id}).");
 
         var movie = await _context.Movie.FindAsync(movieId);
-        if (movie == null)
-        {
-            return NotFound();
-        }
+        if (movie is null)
+            return NotFound($"Movie with id {movieId} does not exist.");
 
         bool isUpdated = (movieDto.Title != null && movieDto.Title != movie.Title)
             || (movieDto.Year != null && movieDto.Year != movie.Year)
             || (movieDto.Duration != null && movieDto.Duration != movie.Duration);
 
         if (!isUpdated)
-        {
-            return BadRequest("No changes detected in the provided data.");
-        }
+            return Ok("No changes detected in the provided data. No updates required.");
 
         movie.Title = movieDto.Title ?? movie.Title;
         movie.Year = movieDto.Year ?? movie.Year;
@@ -220,7 +212,7 @@ public class MoviesController : ControllerBase
         {
             if (!MovieExists(movieId))
             {
-                return NotFound();
+                return NotFound($"Movie with id {movieId} does not exist.");
             }
             else
             {
@@ -237,10 +229,8 @@ public class MoviesController : ControllerBase
     public async Task<IActionResult> DeleteMovie(int? movieId)
     {
         var movie = await _context.Movie.FindAsync(movieId);
-        if (movie == null)
-        {
-            return NotFound();
-        }
+        if (movie is null)
+            return NotFound($"Movie with id {movieId} does not exist.");
 
         _context.Movie.Remove(movie);
         await _context.SaveChangesAsync();

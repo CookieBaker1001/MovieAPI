@@ -46,10 +46,8 @@ public class ActorsController : ControllerBase
     {
         var actor = await _context.Actors.FindAsync(actorId);
 
-        if (actor == null)
-        {
-            return NotFound();
-        }
+        if (actor is null)
+            return NotFound($"Actor with id {actorId} does not exist.");
 
         if (withMovies.HasValue && withMovies.Value)
         {
@@ -111,12 +109,11 @@ public class ActorsController : ControllerBase
             .FirstOrDefaultAsync();
 
         if (movie is null)
-            return NotFound();
+            return NotFound($"Movie with id {movieId} does not exist.");
 
         var actor = await _context.Actors.FindAsync(actorId);
-
         if (actor is null)
-            return NotFound();
+            return NotFound($"Actor with id {actorId} does not exist.");
 
         movie.Actors.Add(actor);
         await _context.SaveChangesAsync();
@@ -130,22 +127,16 @@ public class ActorsController : ControllerBase
     public async Task<IActionResult> PutActor(int? actorId, ActorUpdateDto actorDto)
     {
         if (actorId != actorDto.Id)
-        {
-            return BadRequest();
-        }
+            return BadRequest($"The provided actor id ({actorId}) does not match the id in the request body ({actorDto.Id}).");
 
         var actor = await _context.Actors.FindAsync(actorId);
         if (actor is null)
-        {
-            return NotFound();
-        }
+            return NotFound($"Actor with id {actorId} does not exist.");
 
         bool isUpdated = (actorDto.Name != null && actorDto.Name != actor.Name)
             || (actorDto.BirthYear != null && actorDto.BirthYear != actor.BirthYear);
         if (!isUpdated)
-        {
-            return BadRequest("No changes detected in the provided data.");
-        }
+            return Ok("No changes detected in the provided data. No updates required.");
 
         actor.Name = actorDto.Name ?? actor.Name;
         actor.BirthYear = actorDto.BirthYear ?? actor.BirthYear;
@@ -160,7 +151,7 @@ public class ActorsController : ControllerBase
         {
             if (!ActorExists(actorId))
             {
-                return NotFound();
+                return NotFound($"Actor with id {actorId} does not exist.");
             }
             else
             {

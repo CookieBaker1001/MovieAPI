@@ -39,9 +39,7 @@ public class ReviewsController : ControllerBase
             .ToListAsync();
 
         if (reviews is null)
-        {
-            return NotFound();
-        }
+            return NotFound($"Review with id {movieId} does not exist.");
 
         List<ReviewDto> reviewsToReturn = new List<ReviewDto>();
         foreach (var review in reviews)
@@ -67,9 +65,7 @@ public class ReviewsController : ControllerBase
         var movie = await _context.Movie.FindAsync(movieId);
 
         if (movie is null)
-        {
-            return NotFound($"Movie with ID {movieId} not found.");
-        }
+            return NotFound($"Movie with id {movieId} does not exist.");
 
         var reviewToCreate = new Review
         {
@@ -91,23 +87,17 @@ public class ReviewsController : ControllerBase
     public async Task<IActionResult> PutReview(int? reviewId, ReviewUpdateDto reviewDto)
     {
         if (reviewId != reviewDto.Id)
-        {
-            return BadRequest();
-        }
+            return BadRequest($"The provided review id ({reviewId}) does not match the id in the request body ({reviewDto.Id}).");
 
         var review = await _context.Reviews.FindAsync(reviewId);
         if (review is null)
-        {
-            return NotFound();
-        }
+            return NotFound($"Review with id {reviewId} does not exist.");
 
         bool isUpdated = (reviewDto.ReviewerName != null && reviewDto.ReviewerName != review.ReviewerName)
             || (reviewDto.Comment != null && reviewDto.Comment != review.Comment)
             || (reviewDto.Rating != null && reviewDto.Rating != review.Rating);
         if (!isUpdated)
-        {
-            return BadRequest("No changes detected in the provided data.");
-        }
+            return Ok("No changes detected in the provided data. No updates required.");
 
         review.ReviewerName = reviewDto.ReviewerName ?? review.ReviewerName;
         review.Comment = reviewDto.Comment ?? review.Comment;
@@ -123,7 +113,7 @@ public class ReviewsController : ControllerBase
         {
             if (!ReviewExists(reviewId))
             {
-                return NotFound();
+                return NotFound($"Review with id {reviewId} does not exist.");
             }
             else
             {
@@ -140,10 +130,8 @@ public class ReviewsController : ControllerBase
     public async Task<IActionResult> DeleteReview(int? reviewId)
     {
         var review = await _context.Reviews.FindAsync(reviewId);
-        if (review == null)
-        {
-            return NotFound();
-        }
+        if (review is null)
+            return NotFound($"Review with id {reviewId} does not exist.");
 
         _context.Reviews.Remove(review);
         await _context.SaveChangesAsync();

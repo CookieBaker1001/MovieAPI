@@ -1,4 +1,7 @@
-﻿namespace MovieAPI.Dto
+﻿using MovieAPI.Dto.Actor;
+using MovieAPI.Dto.Review;
+
+namespace MovieAPI.Dto.Movie
 {
     public class MovieDetailDto
     {

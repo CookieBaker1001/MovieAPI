@@ -1,4 +1,4 @@
-﻿namespace MovieAPI.Dto
+﻿namespace MovieAPI.Dto.Review
 {
     public class ReviewUpdateDto
     {

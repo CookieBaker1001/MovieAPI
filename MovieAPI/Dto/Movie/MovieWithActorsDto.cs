@@ -1,4 +1,6 @@
-﻿namespace MovieAPI.Dto
+﻿using MovieAPI.Dto.Actor;
+
+namespace MovieAPI.Dto.Movie
 {
     public class MovieWithActorsDto : IMovieDto
     {

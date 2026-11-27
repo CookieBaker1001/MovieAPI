@@ -1,6 +1,7 @@
-﻿using MovieAPI.Models;
+﻿using MovieAPI.Dto.Movie;
+using MovieAPI.Models;
 
-namespace MovieAPI.Dto
+namespace MovieAPI.Dto.Actor
 {
     public class ActorWithMoviesDto : IActorDto
     {

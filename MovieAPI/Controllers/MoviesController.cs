@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MovieAPI.Dto;
+using MovieAPI.Dto.Actor;
+using MovieAPI.Dto.Movie;
+using MovieAPI.Dto.Review;
 using MovieAPI.Models;
 
 [Route("api/[controller]")]

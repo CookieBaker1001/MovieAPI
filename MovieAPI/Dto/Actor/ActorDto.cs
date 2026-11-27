@@ -1,7 +1,7 @@
 ﻿using MovieAPI.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace MovieAPI.Dto
+namespace MovieAPI.Dto.Actor
 {
     public class ActorDto : IActorDto
     {
